@@ -26,15 +26,15 @@
 
 // COMANDOS DE APLICACION
 #define HELO "HELO"
-#define PASS "PASS"
+#define MAIL "MAIL FROM:"
 #define QUIT "QUIT"
 #define ECHO "ECHO"
 #define ROOM "ROOM" //Comando creado para la tarea 4
 
 
 // RESPUESTAS A COMANDOS DE APLICACION
-#define OK  "OK"
-#define ER  "ER"
+#define ST220  "220"
+#define ST250  "250"
 
 //FIN DE RESPUESTA
 #define CRLF "\r\n"
@@ -42,9 +42,11 @@
 //ESTADOS
 #define S_INIT 0
 #define S_HELO 1
-#define S_PASS 2
-#define S_DATA 3
-#define S_QUIT 4
+#define S_MAIL 2
+#define S_RCPT 3
+#define S_DATA 4
+#define S_WRITE 5
+#define S_QUIT 6
 
 
 //PUERTO DEL SERVICIO

@@ -29,67 +29,6 @@
 
 #pragma comment(lib, "Ws2_32.lib")//Inserta en la vinculación (linking) la biblioteca Ws2_32.lib
 
- /*
- Uso de IA (ChatGPT (OpenAI), GPT-5.6 Sol):
-
- Antes de empezar a modificar el programa utilicé ChatGPT (OpenAI) para
- entender mejor el funcionamiento del código original del cliente, ya que
- había algunas partes que no entendía bien, sobre todo la máquina de estados,
- el intercambio de mensajes con el servidor y el funcionamiento de algunas
- primitivas Socket.
-
- Consulta:
- "Explícame paso a paso cómo funciona este cliente, qué hace cada estado y
- cómo se utilizan las primitivas Socket."
-
- */
-
-
- 
-
-int validNumber(char* text)
-{
-	int length = (int)strlen(text);
-
-	if (length < 1 || length > 2)
-		return 0;
-
-	for (int i = 0; i < length; i++) {
-		if (text[i] < '0' || text[i] > '9')
-			return 0;
-	}
-
-	return 1;
-}
-/*
- Uso de IA:
-
- Mientras estaba implementando la comprobación de la fecha utilicé ChatGPT
- para resolver una duda sobre cómo validar de forma sencilla los días que
- puede tener cada mes.
-
- Prompt:
- "Estoy haciendo la validación del día y del mes. ¿Cómo puedo comprobar de
- forma sencilla que el día existe realmente en ese mes, teniendo en cuenta
- que febrero siempre tiene 28 días?"
-
- Partes en las que me ayudó:
- - Revisión y finalización de la función validDate().
- */
-int validDate(unsigned int day, unsigned int month)
-{
-	if (month < 1 || month > 12 || day < 1)
-		return 0;
-
-	if (month == 2)
-		return day <= 28;
-
-	if (month == 4 || month == 6 || month == 9 || month == 11)
-		return day <= 30;
-
-	return day <= 31;
-}
-
 
 
 int main(int* argc, char* argv[])
@@ -203,19 +142,19 @@ int main(int* argc, char* argv[])
 					case S_INIT:
 						// Se recibe el mensaje de bienvenida
 						break;
-					case S_USER:
+					case S_HELO:
 						// establece la conexion de aplicacion 
-						printf("CLIENTE> Introduzca el usuario (enter para salir): ");
+						printf("CLIENTE> Introduzca el dominio (enter para salir): ");
 						gets_s(input, sizeof(input));
 						if (strlen(input) == 0) {
 							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", QUIT, CRLF);
 							status = S_QUIT;
 						}
 						else {
-							sprintf_s(buffer_out, sizeof(buffer_out), "%s %s%s", USER, input, CRLF);
+							sprintf_s(buffer_out, sizeof(buffer_out), "%s %s%s", HELO, input, CRLF);
 						}
 						break;
-					case S_PASS:
+					case S_MAIL:
 						printf("CLIENTE> Introduzca la clave (enter para salir): ");
 						gets_s(input, sizeof(input));
 						if (strlen(input) == 0) {
@@ -223,103 +162,32 @@ int main(int* argc, char* argv[])
 							status = S_QUIT;
 						}
 						else
-							sprintf_s(buffer_out, sizeof(buffer_out), "%s %s%s", PASS, input, CRLF);
+							sprintf_s(buffer_out, sizeof(buffer_out), "%s %s%s", MAIL, input, CRLF);
 						break;
 
-
-						/*
-	                    Uso de IA:
-
-	                    Primero implementé por mi cuenta la parte del cliente correspondiente al
-	                    nuevo servicio de reservas y al comando ROOM. Después utilicé ChatGPT para
-	                    comprobar si la lógica que había hecho era correcta y revisar un pequeño
-	                    error que apareció durante las pruebas.
-
-	                    Consulta resumida:
-	                    "He implementado el comando ROOM en el cliente, pidiendo la sala, el día y
-	                    el mes y formando después el mensaje que se envía al servidor. ¿Puedes
-	                    revisar si está bien y ayudarme a corregir el error que tengo?"
-
-	                    Partes en las que me ayudó:
-	                    - Revisión de la lógica del comando ROOM.
-	                    - Corrección de un pequeño error en la implementación.
-	                    */
 					case S_DATA:
-						printf("Available rooms:\r\n");
-						printf("Meeting room (cw00).\r\n");
-						printf("Large north coworking room (cw01).\r\n");
-						printf("Large south coworking room (cw02).\r\n");
-						printf("Junior coworking room (cw03).\r\n");
-						do {
-							printf("CLIENT> Enter room code (press enter to exit): ");
+						printf("CLIENTE> Introduzca su mensaje (enter para salir): ");
+						gets_s(input, sizeof(input));
+
+						if (strlen(input) == 0) {
+							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", QUIT, CRLF);
+							status = S_QUIT;
+							break;
+						}
+						else{
+							char subject[64];
+							printf("CLIENTE> Introduzca el asunto: ");
 							gets_s(input, sizeof(input));
 
-							if (strlen(input) == 0) {
-								sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", QUIT, CRLF);
-								status = S_QUIT;
-								break;
-							}
+							// Generar un correo de un solo mensaje "subject:asuntoCRLFCRLF mensaje CRLF.CRLF"
+							sprintf_s(buffer_out, sizeof(buffer_out), "subject:%s%s%s%s%s.%s", subject, CRLF, CRLF, input, CRLF, CRLF);
 
-							if (strlen(input) != 4) {
-								printf("CLIENT> The room code must contain exactly 4 characters.\r\n");
-							}
-
-						} while (strlen(input) != 4);
-						if (status != S_QUIT) {
-							char day[16] = "1";
-							char month[16] = "1";
-							unsigned int dayint = 0; // Alternativa a hacerlo con cadenas o comprobar valores
-							unsigned monthint = 1; // Alternativa a hacerlo con cadenas o comprobar valores
-							int valid = 0;
-
-							do {
-								printf("CLIENT> Enter day: ");
-								gets_s(day, sizeof(day));
-
-								printf("CLIENT> Enter month: ");
-								gets_s(month, sizeof(month));
-
-								if (validNumber(day) && validNumber(month)) {
-
-									dayint = atoi(day);
-									monthint = atoi(month);
-
-									valid = validDate(dayint, monthint);
-								}
-								else {
-									valid = 0;
-								}
-
-								if (!valid) {
-									printf("CLIENT> Invalid date. Please try again.\r\n");
-								}
-
-							} while (!valid);
-
-							// Generar mensaje ROOM = "ROOM" SP CODE SP DAY SP MONTH CRLF; Reserva
-							sprintf_s(buffer_out, sizeof(buffer_out), "%s %s %u %u%s", ROOM, input, dayint, monthint, CRLF);
+												
 						}
 						break;
 					} 
 
-					/*
-                    Uso de IA:
-
-                    Después de empezar a añadir el control de errores de las primitivas Socket,
-                    utilicé ChatGPT para revisar lo que había hecho y corregir algunos problemas
-                    que iban apareciendo durante las pruebas.
-
-                    Consulta:
-                    "He añadido comprobaciones de error a las primitivas Socket del cliente.
-                    Revísame si están bien controlados los errores de connect(), send(), recv()
-                    y closesocket() y dime si hay algún caso en el que el programa pueda
-                    continuar cuando no debería."
-
-                    Partes en las que me ayudó:
-                    - Revisión del tratamiento de errores de las primitivas Socket.
-                    - Uso de WSAGetLastError().
-                    - Corrección del flujo cuando la comunicación ya no puede continuar.
-                    */
+					
 
 					if (status != S_INIT) {
 						sent = send(sockfd, buffer_out, (int)strlen(buffer_out), 0);   //SOCKET Sends the PDU stored in buffer_out to the server through TCP.
@@ -365,17 +233,32 @@ int main(int* argc, char* argv[])
 						//Motor de transición de estados
 						switch (status) {
 						case S_INIT:
-							if (strncmp(buffer_in, OK, 3) == 0) {
+							if (strncmp(buffer_in, ST220, 3) == 0) {
+								status = S_HELO;
 
 							}
+							break;
+						case S_HELO:
+							if (strncmp(buffer_in, ST250, 3) == 0) {
+								status = S_MAIL;
+							}
+							break;
+						case S_MAIL:
+							break;
+						case S_RCPT:
+							/*
+								IF (OK)
+								  IF (OTRO?)
+									status = S_RCPT;
+								  ELSE
+									status = S_DATA;
+								ELSE
+								  status = S_RCPT;
+								*/
+							break;
 						}
-						if (status != S_DATA && strncmp(buffer_in, ST220, 3) == 0){
-							status++;
-						}
-						//Si la autenticación no es correcta se vuelve al estado S_HELO
-						if (status == S_PASS && strncmp(buffer_in, OK, 2) != 0) {
-							status = S_HELO;
-						}
+						
+						
 					}
 
 				} while (status != S_QUIT);
