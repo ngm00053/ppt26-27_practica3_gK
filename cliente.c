@@ -60,7 +60,8 @@ int main(int* argc, char* argv[])
 	err = WSAStartup(wVersionRequested, &wsaData);
 
 	if (err != 0) {
-		return(0);
+		printf("CLIENTE> ERROR: No se puede inicializar Windows Sockets\r\n");	
+		return(1);
 	}
 
 	if (LOBYTE(wsaData.wVersion) != 1 || HIBYTE(wsaData.wVersion) != 1) {
