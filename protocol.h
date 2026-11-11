@@ -35,6 +35,7 @@
 // RESPUESTAS A COMANDOS DE APLICACION
 #define ST220  "220"
 #define ST250  "250"
+#define ST221  "221"
 
 //FIN DE RESPUESTA
 #define CRLF "\r\n"

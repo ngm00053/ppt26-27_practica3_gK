@@ -257,6 +257,15 @@ int main(int* argc, char* argv[])
 								  status = S_RCPT;
 								*/
 							break;
+
+						case S_QUIT:
+							if (strncmp(buffer_in, ST221, 3) == 0) {
+								printf("CLIENTE> Sesion SMTP finalizada correctamente\r\n");
+							}
+							else {
+								printf("CLIENTE> Respuesta inesperada al comando QUIT\r\n");
+							}
+							break;
 						}
 						
 						
