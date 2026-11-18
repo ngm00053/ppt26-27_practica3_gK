@@ -27,6 +27,7 @@
 // COMANDOS DE APLICACION
 #define HELO "HELO"
 #define MAIL "MAIL FROM:"
+#define RCPT "RCPT TO:"
 #define QUIT "QUIT"
 #define ECHO "ECHO"
 #define ROOM "ROOM" //Comando creado para la tarea 4

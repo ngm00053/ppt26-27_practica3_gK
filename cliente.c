@@ -156,14 +156,25 @@ int main(int* argc, char* argv[])
 						}
 						break;
 					case S_MAIL:
-						printf("CLIENTE> Introduzca la clave (enter para salir): ");
+						printf("CLIENTE> Introduzca el remitente (enter para salir): ");
 						gets_s(input, sizeof(input));
 						if (strlen(input) == 0) {
 							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", QUIT, CRLF);
 							status = S_QUIT;
 						}
 						else
-							sprintf_s(buffer_out, sizeof(buffer_out), "%s %s%s", MAIL, input, CRLF);
+							sprintf_s(buffer_out, sizeof(buffer_out), "%s<%s>%s", MAIL, input, CRLF);
+						break;
+
+					case S_RCPT:
+						printf("CLIENTE> Introduzca el destinatario (enter para salir): ");
+						gets_s(input, sizeof(input));
+						if (strlen(input) == 0) {
+							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", QUIT, CRLF);
+							status = S_QUIT;
+						}
+						else
+							sprintf_s(buffer_out, sizeof(buffer_out), "%s<%s>%s", RCPT, input, CRLF);
 						break;
 
 					case S_DATA:
@@ -245,18 +256,33 @@ int main(int* argc, char* argv[])
 							}
 							break;
 						case S_MAIL:
+							if (strncmp(buffer_in, ST250, 3) == 0) {
+								status = S_RCPT;
+							}
+							else {
+								printf("CLIENTE> Remitente no aceptado por el servidor\r\n");
+							}
 							break;
 						case S_RCPT:
-							/*
-								IF (OK)
-								  IF (OTRO?)
+							if(strncmp(buffer_in, ST250, 3) == 0) {
+								
+								printf("CLIENTE> ¿Desea añadir otro destinatario? (S/N): "); 
+								option = _getche();
+								printf("\r\n");
+
+								if(option == 's' || option == 'S') {
 									status = S_RCPT;
-								  ELSE
-									status = S_DATA;
-								ELSE
-								  status = S_RCPT;
-								*/
-							break;
+								}
+								else {
+									status = S_DATA; 
+								}
+							}
+							else{
+								printf("CLIENTE> Destinatario no aceptado\r\n");
+								status = S_RCPT;
+							}
+							break;							 
+
 
 						case S_QUIT:
 							if (strncmp(buffer_in, ST221, 3) == 0) {
@@ -265,7 +291,7 @@ int main(int* argc, char* argv[])
 							else {
 								printf("CLIENTE> Respuesta inesperada al comando QUIT\r\n");
 							}
-							break;
+							break; 
 						}
 						
 						
