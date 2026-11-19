@@ -28,6 +28,7 @@
 #define HELO "HELO"
 #define MAIL "MAIL FROM:"
 #define RCPT "RCPT TO:"
+#define DATA "DATA"
 #define QUIT "QUIT"
 #define ECHO "ECHO"
 #define ROOM "ROOM" //Comando creado para la tarea 4
@@ -37,6 +38,7 @@
 #define ST220  "220"
 #define ST250  "250"
 #define ST221  "221"
+#define ST354  "354"
 
 //FIN DE RESPUESTA
 #define CRLF "\r\n"

@@ -173,33 +173,34 @@ int main(int* argc, char* argv[])
 							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", QUIT, CRLF);
 							status = S_QUIT;
 						}
-						else
+						else {
 							sprintf_s(buffer_out, sizeof(buffer_out), "%s<%s>%s", RCPT, input, CRLF);
+						}
 						break;
 
 					case S_DATA:
-						printf("CLIENTE> Introduzca su mensaje (enter para salir): ");
-						gets_s(input, sizeof(input));
-
-						if (strlen(input) == 0) {
-							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", QUIT, CRLF);
-							status = S_QUIT;
-							break;
-						}
-						else{
-							char subject[64];
-							printf("CLIENTE> Introduzca el asunto: ");
-							gets_s(input, sizeof(input));
-
-							// Generar un correo de un solo mensaje "subject:asuntoCRLFCRLF mensaje CRLF.CRLF"
-							sprintf_s(buffer_out, sizeof(buffer_out), "subject:%s%s%s%s%s.%s", subject, CRLF, CRLF, input, CRLF, CRLF);
-
-												
-						}
+						sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", DATA, CRLF);
 						break;
-					} 
 
+					case S_WRITE:
+					{
+						char subject[64];
+						char message[256];
+
+						printf("CLIENTE> Introduzca el asunto: ");
+						gets_s(subject, sizeof(subject));
+
+						printf("CLIENTE> Introduzca el mensaje: ");
+						gets_s(message, sizeof(message));
+
+						// Generar el correo: cabecera, linea vacia, cuerpo y punto final
+						sprintf_s(buffer_out, sizeof(buffer_out),
+							"Subject: %s%s%s%s%s.%s",
+							subject, CRLF, CRLF, message, CRLF, CRLF);
+						break;
+					}
 					
+					}					
 
 					if (status != S_INIT) {
 						sent = send(sockfd, buffer_out, (int)strlen(buffer_out), 0);   //SOCKET Sends the PDU stored in buffer_out to the server through TCP.
@@ -281,7 +282,24 @@ int main(int* argc, char* argv[])
 								printf("CLIENTE> Destinatario no aceptado\r\n");
 								status = S_RCPT;
 							}
-							break;							 
+							break;		
+
+						case S_DATA:
+							if (strncmp(buffer_in, ST354, 3) == 0) {
+								status = S_WRITE;
+							}
+							break;
+
+
+						case S_WRITE:
+							if (strncmp(buffer_in, ST250, 3) == 0) {
+								printf("CLIENTE> Correo enviado correctamente\r\n");
+								status = S_MAIL;
+							}
+							else {
+								printf("CLIENTE> Error al enviar el correo\r\n");
+							}
+							break;
 
 
 						case S_QUIT:
