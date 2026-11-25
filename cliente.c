@@ -46,6 +46,8 @@ int main(int* argc, char* argv[])
 	char ipdest[256];
 	char default_ip4[16] = "127.0.0.1";                    //loopback para permitir al equipo comunicarse consigo mismo
 	char default_ip6[64] = "::1";
+	int headers = 0;
+	int sending = 0;
 
 	WORD wVersionRequested;
 	WSADATA wsaData;
@@ -184,23 +186,46 @@ int main(int* argc, char* argv[])
 
 					case S_WRITE:
 					{
-						char subject[64];
-						char message[256];
+						sending = 1;
 
-						printf("CLIENTE> Introduzca el asunto: ");
-						gets_s(subject, sizeof(subject));
+						//TAREA 4: CONTROLAR SI SE HAN ENVIADO LAS CABECERAS
 
-						printf("CLIENTE> Introduzca el mensaje: ");
-						gets_s(message, sizeof(message));
+						if (headers == 0) {
+							char subject[1024] = "";
+							char to[1024] = "";
+							char from[1024] = "";
 
-						// Generar el correo: cabecera, linea vacia, cuerpo y punto final
-						sprintf_s(buffer_out, sizeof(buffer_out),
-							"Subject: %s%s%s%s%s.%s",
-							subject, CRLF, CRLF, message, CRLF, CRLF);
+							printf("CLIENTE> Introduzca el asunto: ");
+							gets_s(subject, sizeof(subject));
+
+							printf("CLIENTE> Introduzca el remitente: ");
+							gets_s(from, sizeof(from));
+
+							printf("CLIENTE> Introduzca el destinatario: ");
+							gets_s(to, sizeof(to));
+
+							// Construir las cabeceras y la línea vacía
+							sprintf_s(buffer_out, sizeof(buffer_out), "Subject: %s%sFrom: %s%sTo: %s%s%s", subject, CRLF, from, CRLF, to, CRLF, CRLF);
+
+							headers = 1;
+						}
+						else {
+							printf("CLIENTE: Introduzca la línea del mensaje ('.' para terminar): ");
+							gets_s(input, sizeof(input));
+
+							//Enviar la línea introducida seguida de CRLF
+							sprintf_s(buffer_out, sizeof(buffer_out), "%s%s", input, CRLF);
+
+							// Comprobar si el usuario ha terminado el mensaje
+							if (strcmp(input, ".") == 0) {
+								sending = 0;
+							}
+
+						}
 						break;
+
 					}
-					
-					}					
+					}
 
 					if (status != S_INIT) {
 						sent = send(sockfd, buffer_out, (int)strlen(buffer_out), 0);   //SOCKET Sends the PDU stored in buffer_out to the server through TCP.
@@ -219,102 +244,104 @@ int main(int* argc, char* argv[])
 						}
 					}
 
-					received = recv(sockfd, buffer_in, 512, 0);    //SOCKET Receives the response sent by the server through the TCP connection.
-                                                                   //SOCKET Parameters:
-                                                                   //SOCKET - sockfd: descriptor of the socket connected to the server.
-                                                                   //SOCKET - buffer_in: buffer where the received data will be stored.
-                                                                   //SOCKET - 512: maximum number of bytes that can be received in this call.
-                                                                   //SOCKET - 0: flags; normal operation of recv().
-                                                                   //SOCKET Return value: number of bytes received if successful,
-                                                                   //SOCKET 0 if the server closes the connection in an orderly way,
-                                                                   //SOCKET or SOCKET_ERROR (-1) if an error occurs.
-					if (received <= 0) {         
-						DWORD error = WSAGetLastError();
-						if (received < 0) {
-							printf("CLIENTE> Error %d en la recepción de datos\r\n", error);
-							status = S_QUIT;
-						}
-						else {
-							printf("CLIENTE> Conexión con el servidor cerrada\r\n");
-							status = S_QUIT;
-						}
-					}
-					else {
-						buffer_in[received] = 0x00;
-						printf("%s",buffer_in);
-
-						//Motor de transición de estados
-						switch (status) {
-						case S_INIT:
-							if (strncmp(buffer_in, ST220, 3) == 0) {
-								status = S_HELO;
-
-							}
-							break;
-						case S_HELO:
-							if (strncmp(buffer_in, ST250, 3) == 0) {
-								status = S_MAIL;
-							}
-							break;
-						case S_MAIL:
-							if (strncmp(buffer_in, ST250, 3) == 0) {
-								status = S_RCPT;
+					if (sending == 0) {
+						received = recv(sockfd, buffer_in, 512, 0);    //SOCKET Receives the response sent by the server through the TCP connection.
+						//SOCKET Parameters:
+						//SOCKET - sockfd: descriptor of the socket connected to the server.
+						//SOCKET - buffer_in: buffer where the received data will be stored.
+						//SOCKET - 512: maximum number of bytes that can be received in this call.
+						//SOCKET - 0: flags; normal operation of recv().
+						//SOCKET Return value: number of bytes received if successful,
+						//SOCKET 0 if the server closes the connection in an orderly way,
+						//SOCKET or SOCKET_ERROR (-1) if an error occurs.
+						if (received <= 0) {
+							DWORD error = WSAGetLastError();
+							if (received < 0) {
+								printf("CLIENTE> Error %d en la recepción de datos\r\n", error);
+								status = S_QUIT;
 							}
 							else {
-								printf("CLIENTE> Remitente no aceptado por el servidor\r\n");
+								printf("CLIENTE> Conexión con el servidor cerrada\r\n");
+								status = S_QUIT;
 							}
-							break;
-						case S_RCPT:
-							if(strncmp(buffer_in, ST250, 3) == 0) {
-								
-								printf("CLIENTE> ¿Desea añadir otro destinatario? (S/N): "); 
-								option = _getche();
-								printf("\r\n");
+						}
+						else {
+							buffer_in[received] = 0x00;
+							printf("%s", buffer_in);
 
-								if(option == 's' || option == 'S') {
+							//Motor de transición de estados
+							switch (status) {
+							case S_INIT:
+								if (strncmp(buffer_in, ST220, 3) == 0) {
+									status = S_HELO;
+
+								}
+								break;
+							case S_HELO:
+								if (strncmp(buffer_in, ST250, 3) == 0) {
+									status = S_MAIL;
+								}
+								break;
+							case S_MAIL:
+								if (strncmp(buffer_in, ST250, 3) == 0) {
 									status = S_RCPT;
 								}
 								else {
-									status = S_DATA; 
+									printf("CLIENTE> Remitente no aceptado por el servidor\r\n");
 								}
-							}
-							else{
-								printf("CLIENTE> Destinatario no aceptado\r\n");
-								status = S_RCPT;
-							}
-							break;		
+								break;
+							case S_RCPT:
+								if (strncmp(buffer_in, ST250, 3) == 0) {
 
-						case S_DATA:
-							if (strncmp(buffer_in, ST354, 3) == 0) {
-								status = S_WRITE;
-							}
-							break;
+									printf("CLIENTE> ¿Desea añadir otro destinatario? (S/N): ");
+									option = _getche();
+									printf("\r\n");
+
+									if (option == 's' || option == 'S') {
+										status = S_RCPT;
+									}
+									else {
+										status = S_DATA;
+									}
+								}
+								else {
+									printf("CLIENTE> Destinatario no aceptado\r\n");
+									status = S_RCPT;
+								}
+								break;
+
+							case S_DATA:
+								if (strncmp(buffer_in, ST354, 3) == 0) {
+									status = S_WRITE;
+								}
+								break;
 
 
-						case S_WRITE:
-							if (strncmp(buffer_in, ST250, 3) == 0) {
-								printf("CLIENTE> Correo enviado correctamente\r\n");
-								status = S_MAIL;
-							}
-							else {
-								printf("CLIENTE> Error al enviar el correo\r\n");
-							}
-							break;
+							case S_WRITE:
+								if (strncmp(buffer_in, ST250, 3) == 0) {
+									printf("CLIENTE> Correo enviado correctamente\r\n");
+									headers = 0;
+									status = S_MAIL;
+								}
+								else {
+									printf("CLIENTE> Error al enviar el correo\r\n");
+								}
+								break;
 
 
-						case S_QUIT:
-							if (strncmp(buffer_in, ST221, 3) == 0) {
-								printf("CLIENTE> Sesion SMTP finalizada correctamente\r\n");
+							case S_QUIT:
+								if (strncmp(buffer_in, ST221, 3) == 0) {
+									printf("CLIENTE> Sesion SMTP finalizada correctamente\r\n");
+								}
+								else {
+									printf("CLIENTE> Respuesta inesperada al comando QUIT\r\n");
+								}
+								break;
 							}
-							else {
-								printf("CLIENTE> Respuesta inesperada al comando QUIT\r\n");
-							}
-							break; 
+
+
 						}
-						
-						
 					}
-
 				} while (status != S_QUIT);
 			}
 			else {
